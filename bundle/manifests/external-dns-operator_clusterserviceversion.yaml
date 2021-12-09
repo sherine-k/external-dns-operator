@@ -31,7 +31,7 @@ metadata:
     repository: https://github.com/openshift/external-dns-operator
     support: Red Hat, Inc.
     createdAt: 2021/09/28
-    containerImage: quay.io/openshift/origin-external-dns-operator:latest
+    containerImage: quay.io/skhoury/external-dns-operator:latest
   name: external-dns-operator.v0.0.1
   namespace: external-dns-operator
 spec:
@@ -87,7 +87,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: quay.io/openshift/origin-external-dns-operator:latest
+                image: quay.io/skhoury/external-dns-operator:latest
                 name: operator
                 ports:
                   - containerPort: 9443

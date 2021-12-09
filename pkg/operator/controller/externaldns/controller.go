@@ -71,10 +71,23 @@ func New(mgr manager.Manager, cfg Config) (controller.Controller, error) {
 		scheme: mgr.GetScheme(),
 		log:    ctrl.Log.WithName(controlleroperator.ControllerName),
 	}
+	r.log.WithName("externaldnsOperator").Info("Starting", "controller", "externaldns")
 
 	c, err := controller.New(controlleroperator.ControllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return nil, err
+	}
+
+	if _, _, err := r.ensureExternalDNSNamespace(context.TODO(), r.config.Namespace); err != nil {
+		return nil, fmt.Errorf("failed to ensure externalDNS namespace: %w", err)
+	}
+
+	if _, _, err := r.ensureOperatorRoleInExternalDNSNS(context.TODO(), r.config.Namespace); err != nil {
+		return nil, fmt.Errorf("failed to ensure externalDNS namespace: %w", err)
+	}
+
+	if _, _, err := r.ensureOperatorRoleBindingInExternalDNSNS(context.TODO(), r.config.Namespace, r.config.OperatorNamespace); err != nil {
+		return nil, fmt.Errorf("failed to ensure externalDNS namespace: %w", err)
 	}
 
 	if err := c.Watch(&source.Kind{Type: &operatorv1alpha1.ExternalDNS{}}, &handler.EnqueueRequestForObject{}); err != nil {
@@ -87,6 +100,7 @@ func New(mgr manager.Manager, cfg Config) (controller.Controller, error) {
 	}); err != nil {
 		return nil, err
 	}
+	r.log.WithName("externaldnsOperator").Info("Started", "controller", "externaldns")
 
 	return c, nil
 }
@@ -114,6 +128,10 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, fmt.Errorf("failed to ensure externalDNS namespace: %w", err)
 	}
 
+	if _, _, err := r.ensureOperatorRoleInExternalDNSNS(ctx, r.config.Namespace); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to ensure externalDNS namespace: %w", err)
+	}
+
 	if r.config.IsOpenShift && operatorutils.ManagedCredentialsProvider(externalDNS) {
 		if _, _, err := r.ensureExternalCredentialsRequest(ctx, externalDNS); err != nil {
 			return reconcile.Result{}, fmt.Errorf("failed to ensure credentials request for externalDNS: %w", err)
@@ -129,6 +147,10 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if _, _, err := r.ensureExternalDNSClusterRoleBinding(ctx, r.config.Namespace, externalDNS); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to ensure externalDNS cluster role binding: %w", err)
+	}
+
+	if _, _, err := r.ensureOperatorRoleBindingInExternalDNSNS(ctx, r.config.Namespace, r.config.OperatorNamespace); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to ensure externalDNS namespace: %w", err)
 	}
 
 	_, currentDeployment, err := r.ensureExternalDNSDeployment(ctx, r.config.Namespace, r.config.Image, sa, externalDNS)

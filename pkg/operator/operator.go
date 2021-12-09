@@ -60,10 +60,14 @@ type Operator struct {
 // +kubebuilder:rbac:groups=externaldns.olm.openshift.io,resources=externaldnses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=externaldns.olm.openshift.io,resources=externaldnses/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=externaldns.olm.openshift.io,resources=externaldnses/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=namespaces;serviceaccounts;secrets,verbs=get;list;watch;delete;create;update
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;delete;create;update
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;delete;create;update
+// +kubebuilder:rbac:groups=core;"",namespace=external-dns-operator,resources=serviceaccounts;secrets,verbs=get;list;watch;delete;create;update
+// +kubebuilder:rbac:groups=apps,namespace=external-dns-operator,resources=deployments,verbs=get;list;watch;delete;create;update
 // +kubebuilder:rbac:groups="",resources=services;endpoints;pods;nodes,verbs=get;list;watch
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;list;watch;create;update;patch;delete;escalate
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resourceNames=external-dns-operator,resources=roles,verbs=bind
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cloudcredential.openshift.io,resources=credentialsrequests;credentialsrequests/status;credentialsrequests/finalizers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;watch;list

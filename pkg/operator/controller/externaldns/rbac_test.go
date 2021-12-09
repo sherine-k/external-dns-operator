@@ -483,7 +483,7 @@ func TestExternalDNSRoleRulesChanged(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			gotChanged, _ := externalDNSRoleRulesChanged(tc.inputCurrent, tc.inputExpected)
+			gotChanged, _ := rulesChanged(tc.inputCurrent, tc.inputExpected)
 			if gotChanged != tc.expectChanged {
 				t.Errorf("expected that the role rules changed %t, got %t", tc.expectChanged, gotChanged)
 			}
@@ -861,7 +861,7 @@ func TestExternalDNSRoleBindingChanged(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			updated := tc.inputCurrent.DeepCopy()
-			gotChanged, _ := externalDNSRoleBindingChanged(tc.inputCurrent, tc.inputExpected, updated)
+			gotChanged, _ := externalDNSClusterRoleBindingChanged(tc.inputCurrent, tc.inputExpected, updated)
 			if gotChanged != tc.expectChanged {
 				t.Errorf("expected that the role binding changed %t, got %t", tc.expectChanged, gotChanged)
 			}

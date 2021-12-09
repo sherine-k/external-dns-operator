@@ -76,6 +76,8 @@ func New(mgr manager.Manager, config Config) (controller.Controller, error) {
 		config: config,
 		log:    log,
 	}
+	reconciler.log.WithName("externaldnsOperator").Info("Starting", "controller", "credentials-secret")
+
 	c, err := controller.New(controllerName, mgr, controller.Options{
 		Reconciler: reconciler,
 	})
@@ -207,6 +209,7 @@ func New(mgr manager.Manager, config Config) (controller.Controller, error) {
 	); err != nil {
 		return nil, err
 	}
+	reconciler.log.WithName("externaldnsOperator").Info("Started", "controller", "credentials-secret")
 
 	return c, nil
 }

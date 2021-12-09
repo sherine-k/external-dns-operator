@@ -21,19 +21,6 @@ rules:
   - ""
   resources:
   - namespaces
-  - secrets
-  - serviceaccounts
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - update
-  - watch
-- apiGroups:
-  - apps
-  resources:
-  - deployments
   verbs:
   - create
   - delete
@@ -111,10 +98,76 @@ rules:
   - update
   - watch
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  verbs:
+  - create
+  - delete
+  - escalate
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - external-dns-operator
+  resources:
+  - roles
+  verbs:
+  - bind
+- apiGroups:
   - route.openshift.io
   resources:
   - routes
   verbs:
   - get
   - list
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: external-dns-operator
+  namespace: external-dns-operator
+rules:
+- apiGroups:
+  - ""
+  - ""
+  resources:
+  - secrets
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
   - watch

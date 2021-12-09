@@ -193,7 +193,7 @@ func (r *reconciler) createExternalDNSClusterRoleBinding(ctx context.Context, de
 
 // updateExternalDNSClusterRole updates the cluster role with the desired state if the rules differ
 func (r *reconciler) updateExternalDNSClusterRole(ctx context.Context, current, desired *rbacv1.ClusterRole) (bool, error) {
-	changed, reason := externalDNSRoleRulesChanged(current.Rules, desired.Rules)
+	changed, reason := rulesChanged(current.Rules, desired.Rules)
 	if !changed {
 		return false, nil
 	}
@@ -213,7 +213,7 @@ func (r *reconciler) updateExternalDNSClusterRole(ctx context.Context, current, 
 func (r *reconciler) updateExternalDNSClusterRoleBinding(ctx context.Context, current, desired *rbacv1.ClusterRoleBinding) (bool, error) {
 	updated := current.DeepCopy()
 
-	changed, reason := externalDNSRoleBindingChanged(current, desired, updated)
+	changed, reason := externalDNSClusterRoleBindingChanged(current, desired, updated)
 	if !changed {
 		return false, nil
 	}
@@ -225,9 +225,9 @@ func (r *reconciler) updateExternalDNSClusterRoleBinding(ctx context.Context, cu
 	return true, nil
 }
 
-// externalDNSRoleRulesChanged returns true if the contents of the rules changed.
+// rulesChanged returns true if the contents of the rules changed.
 // The order of apigroups, resources, and verbs does not matter.
-func externalDNSRoleRulesChanged(current, expected []rbacv1.PolicyRule) (bool, string) {
+func rulesChanged(current, expected []rbacv1.PolicyRule) (bool, string) {
 	currentRuleMap := buildSortedPolicyRuleMap(current)
 	expectedRuleMap := buildSortedPolicyRuleMap(expected)
 
@@ -238,10 +238,10 @@ func externalDNSRoleRulesChanged(current, expected []rbacv1.PolicyRule) (bool, s
 	return false, ""
 }
 
-// externalDNSRoleBindingChanged returns true if the role binding changed,
+// externalDNSClusterRoleBindingChanged returns true if the role binding changed,
 // second output value is the reason of the change (role/subject).
 // Updated input parameter is set with the desired values in case the role binding changed.
-func externalDNSRoleBindingChanged(current, desired, updated *rbacv1.ClusterRoleBinding) (bool, string) {
+func externalDNSClusterRoleBindingChanged(current, desired, updated *rbacv1.ClusterRoleBinding) (bool, string) {
 	changed := false
 	what := []string{}
 
