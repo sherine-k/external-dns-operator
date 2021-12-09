@@ -75,8 +75,8 @@ func (r *reconciler) ensureOperatorRoleBindingInExternalDNSNS(ctx context.Contex
 func desiredOperatorRole(name types.NamespacedName) rbacv1.Role {
 	rules := []rbacv1.PolicyRule{
 		{
-			APIGroups: []string{"core", ""},
-			Resources: []string{"secret"},
+			APIGroups: []string{""},
+			Resources: []string{"secrets"},
 			Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
 		},
 		{
