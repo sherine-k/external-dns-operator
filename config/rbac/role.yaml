@@ -77,7 +77,8 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
-  - clusterroles
+  resourceNames:
+    - external-dns
   verbs:
   - create
   - delete

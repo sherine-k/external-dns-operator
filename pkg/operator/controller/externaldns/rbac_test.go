@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	corev1 "k8s.io/api/core/v1"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +41,7 @@ func TestEnsureExternalDNSClusterRole(t *testing.T) {
 		existingObjects []runtime.Object
 		expectedExist   bool
 		expectedRole    rbacv1.ClusterRole
+		expectedClusterRoleBinding rbacv1.ClusterRoleBinding
 		errExpected     bool
 	}{
 		{
@@ -499,6 +501,89 @@ func TestEnsureExternalDNSClusterRoleBinding(t *testing.T) {
 		expectedRoleBinding rbacv1.ClusterRoleBinding
 		errExpected         bool
 	}{
+		{
+			name: "Does_not_exist_isnt_first",
+			existingObjects: []runtime.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "external-dns-first-instance",
+						Namespace: "external-dns",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "externaldns.olm.openshift.io/v1alpha1",
+								BlockOwnerDeletion: &test.TrueVar,
+								Controller:         &test.TrueVar,
+								Kind:               "ExternalDNS",
+								Name:               "first-instance",
+							},
+						},
+					},
+				},
+				&rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: controller.ExternalDNSBaseName,
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         operatorv1alpha1.GroupVersion.String(),
+								Kind:               "ExternalDNS",
+								Name:               controller.ExternalDNSBaseName,
+								Controller:         &test.TrueVar,
+								BlockOwnerDeletion: &test.TrueVar,
+							},
+						},
+					},
+					RoleRef: rbacv1.RoleRef{
+						APIGroup: "rbac.authorization.k8s.io",
+						Kind:     "ClusterRole",
+						Name:     controller.ExternalDNSBaseName,
+					},
+					Subjects: []rbacv1.Subject{
+						{
+							Kind:      "ServiceAccount",
+							Name:      controller.ExternalDNSResourceName(test.ExternalDNS),
+							Namespace: test.OperandNamespace,
+						},
+						{
+							Kind:      "ServiceAccount",
+							Name:      "external-dns-first-instance",
+							Namespace: test.OperandNamespace,
+						},
+					},
+				},
+			},
+			expectedExist: true,
+			expectedRoleBinding: rbacv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: controller.ExternalDNSBaseName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         operatorv1alpha1.GroupVersion.String(),
+							Kind:               "ExternalDNS",
+							Name:               "external-dns",
+							Controller:         &test.TrueVar,
+							BlockOwnerDeletion: &test.TrueVar,
+						},
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "ClusterRole",
+					Name:     "external-dns",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      "external-dns-test",
+						Namespace: "external-dns",
+					},
+					{
+						Kind:      "ServiceAccount",
+						Name:      "external-dns-first-instance",
+						Namespace: "external-dns",
+					},
+				},
+			},
+		},
 		{
 			name:            "Does not exist",
 			existingObjects: []runtime.Object{},

@@ -23,15 +23,14 @@ import (
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
-
+	operatorv1alpha1 "github.com/openshift/external-dns-operator/api/v1alpha1"
+	controller "github.com/openshift/external-dns-operator/pkg/operator/controller"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	operatorv1alpha1 "github.com/openshift/external-dns-operator/api/v1alpha1"
-	controller "github.com/openshift/external-dns-operator/pkg/operator/controller"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ensureExternalDNSClusterRole ensures that the externalDNS cluster role exists.
@@ -68,14 +67,15 @@ func (r *reconciler) ensureExternalDNSClusterRole(ctx context.Context, externalD
 // Returns a boolean if the cluster role binding exists, and an error when relevant.
 func (r *reconciler) ensureExternalDNSClusterRoleBinding(ctx context.Context, namespace string, externalDNS *operatorv1alpha1.ExternalDNS) (bool, *rbacv1.ClusterRoleBinding, error) {
 	name := types.NamespacedName{Name: controller.ExternalDNSResourceName(externalDNS)}
+	crbName := types.NamespacedName{Name: controller.ExternalDNSBaseName}
 
-	desired := desiredExternalDNSClusterRoleBinding(namespace, externalDNS)
-
-	if err := controllerutil.SetControllerReference(externalDNS, desired, r.scheme); err != nil {
-		return false, nil, fmt.Errorf("failed to set the controller reference for cluster role binding: %w", err)
+	currentSAs, err := r.currentExtDNSOwnedServiceAccounts(ctx, namespace)
+	if err != nil {
+		return false, nil, err
 	}
+	desired := desiredExternalDNSClusterRoleBinding(namespace, externalDNS, currentSAs)
 
-	exists, current, err := r.currentExternalDNSClusterRoleBinding(ctx, name)
+	exists, current, err := r.currentExternalDNSClusterRoleBinding(ctx, crbName)
 	if err != nil {
 		return false, nil, err
 	}
@@ -129,10 +129,10 @@ func desiredExternalDNSClusterRole(externalDNS *operatorv1alpha1.ExternalDNS) *r
 }
 
 // desiredExternalDNSClusterRoleBinding returns the desired cluster role binding's definition for externalDNS
-func desiredExternalDNSClusterRoleBinding(namespace string, externalDNS *operatorv1alpha1.ExternalDNS) *rbacv1.ClusterRoleBinding {
-	return &rbacv1.ClusterRoleBinding{
+func desiredExternalDNSClusterRoleBinding(namespace string, externalDNS *operatorv1alpha1.ExternalDNS, sasOwnedByExtDNS []string) *rbacv1.ClusterRoleBinding {
+	rb:= &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: controller.ExternalDNSResourceName(externalDNS),
+			Name: controller.ExternalDNSBaseName,
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
@@ -147,6 +147,17 @@ func desiredExternalDNSClusterRoleBinding(namespace string, externalDNS *operato
 			},
 		},
 	}
+	for _,sa := range(sasOwnedByExtDNS){
+		if sa != controller.ExternalDNSResourceName(externalDNS){
+			subject := rbacv1.Subject{
+					Kind:      rbacv1.ServiceAccountKind,
+					Name:      sa,
+					Namespace: namespace,
+				}
+			rb.Subjects = append(rb.Subjects, subject)
+		}
+	}
+	return rb
 }
 
 // currentExternalDNSClusterRole returns true if cluster role exists
@@ -173,6 +184,23 @@ func (r *reconciler) currentExternalDNSClusterRoleBinding(ctx context.Context, n
 	return true, crb, nil
 }
 
+
+func (r *reconciler) currentExtDNSOwnedServiceAccounts (ctx context.Context, namespace string) ([]string, error){
+	serviceAccounts := &corev1.ServiceAccountList {}
+	matchingSANames := []string{}
+	if err := r.client.List(ctx, serviceAccounts, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+
+	for _, sa := range (serviceAccounts.Items){
+		for _, ownerRef := range(sa.GetObjectMeta().GetOwnerReferences()){
+			if ownerRef.Kind == "ExternalDNS"{
+				matchingSANames = append(matchingSANames, sa.Name)
+			}
+		}
+	}
+	return matchingSANames, nil
+}
 // createExternalDNSClusterRole creates the given cluster role
 func (r *reconciler) createExternalDNSClusterRole(ctx context.Context, desired *rbacv1.ClusterRole) error {
 	if err := r.client.Create(ctx, desired); err != nil {
@@ -252,16 +280,15 @@ func externalDNSRoleBindingChanged(current, desired, updated *rbacv1.ClusterRole
 	}
 
 	if current.Subjects != nil && len(current.Subjects) > 0 {
-		if current.Subjects[0].Name != desired.Subjects[0].Name {
-			updated.Subjects[0].Name = desired.Subjects[0].Name
-			changed = true
-			what = append(what, "subject-name")
+		currentSubjects := make(map[string]rbacv1.Subject)
+		for _,subject := range(current.Subjects){
+			currentSubjects[subject.Name+"-"+subject.Namespace] = subject
 		}
-
-		if current.Subjects[0].Namespace != desired.Subjects[0].Namespace {
-			updated.Subjects[0].Namespace = desired.Subjects[0].Namespace
-			changed = true
-			what = append(what, "subject-namespace")
+		for _,desiredSubject := range(desired.Subjects){
+			if _, found := currentSubjects[desiredSubject.Name+"-"+desiredSubject.Namespace]; !found{
+				changed = true
+				what = append(what, "subject: "+ desiredSubject.Name+", Namespace: "+desiredSubject.Namespace)
+			}
 		}
 	}
 
