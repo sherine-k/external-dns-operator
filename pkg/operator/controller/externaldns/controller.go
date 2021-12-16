@@ -106,9 +106,9 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, fmt.Errorf("failed to get externalDNS %s: %w", req, err)
 	}
 
-	if _, _, err := r.ensureExternalDNSClusterRole(ctx, externalDNS); err != nil {
-		return reconcile.Result{}, fmt.Errorf("failed to ensure externalDNS cluster role: %w", err)
-	}
+	//if _, _, err := r.ensureExternalDNSClusterRole(ctx, externalDNS); err != nil {
+	//	return reconcile.Result{}, fmt.Errorf("failed to ensure externalDNS cluster role: %w", err)
+	//}
 
 	if r.config.IsOpenShift && operatorutils.ManagedCredentialsProvider(externalDNS) {
 		if _, _, err := r.ensureExternalCredentialsRequest(ctx, externalDNS); err != nil {

@@ -75,7 +75,6 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
-  - clusterroles
   verbs:
   - create
   - delete
@@ -84,6 +83,14 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - external-dns
+  resources:
+  - clusterroles
+  verbs:
+  - bind
 - apiGroups:
   - route.openshift.io
   resources:

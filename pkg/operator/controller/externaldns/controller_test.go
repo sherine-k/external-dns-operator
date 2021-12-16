@@ -54,7 +54,7 @@ func TestReconcile(t *testing.T) {
 		&corev1.NamespaceList{},
 		&appsv1.DeploymentList{},
 		&corev1.ServiceAccountList{},
-		&rbacv1.ClusterRoleList{},
+		//&rbacv1.ClusterRoleList{},
 		&rbacv1.ClusterRoleBindingList{},
 		&operatorv1alpha1.ExternalDNSList{},
 	}
@@ -76,13 +76,13 @@ func TestReconcile(t *testing.T) {
 			inputRequest:    testRequest(),
 			expectedResult:  reconcile.Result{},
 			expectedEvents: []testEvent{
-				{
-					eventType: watch.Added,
-					objType:   "clusterrole",
-					NamespacedName: types.NamespacedName{
-						Name: "external-dns",
-					},
-				},
+				//{
+				//eventType: watch.Added,
+				//objType:   "clusterrole",
+				//NamespacedName: types.NamespacedName{
+				//	Name: "external-dns",
+				//},
+				//},
 				{
 					eventType: watch.Added,
 					objType:   "deployment",
@@ -129,13 +129,13 @@ func TestReconcile(t *testing.T) {
 						Name: "externaldns-credentials-request-" + strings.ToLower(string(testExtDNSInstance().Spec.Provider.Type)),
 					},
 				},
-				{
-					eventType: watch.Added,
-					objType:   "clusterrole",
-					NamespacedName: types.NamespacedName{
-						Name: "external-dns",
-					},
-				},
+				//{
+				//	eventType: watch.Added,
+				//	objType:   "clusterrole",
+				//	NamespacedName: types.NamespacedName{
+				//		Name: "external-dns",
+				//	},
+				//},
 				{
 					eventType: watch.Added,
 					objType:   "deployment",
